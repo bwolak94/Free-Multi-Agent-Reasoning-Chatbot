@@ -1,0 +1,40 @@
+model_list:
+  # Planner chain — reasoning quality matters
+  - model_name: planner
+    litellm_params:
+      model: gemini/gemini-1.5-flash
+      api_key: "os.environ/GEMINI_API_KEY"
+  - model_name: planner
+    litellm_params:
+      model: openrouter/deepseek/deepseek-r1:free
+      api_key: "os.environ/OPENROUTER_API_KEY"
+  - model_name: planner
+    litellm_params:
+      model: groq/llama-3.3-70b-versatile
+      api_key: "os.environ/GROQ_API_KEY"
+
+  # Fast chain — speed matters, cheap steps
+  - model_name: fast
+    litellm_params:
+      model: groq/llama-3.1-8b-instant
+      api_key: "os.environ/GROQ_API_KEY"
+  - model_name: fast
+    litellm_params:
+      model: cerebras/llama3.1-8b
+      api_key: "os.environ/CEREBRAS_API_KEY"
+  - model_name: fast
+    litellm_params:
+      model: gemini/gemini-1.5-flash
+      api_key: "os.environ/GEMINI_API_KEY"
+  - model_name: fast
+    litellm_params:
+      model: openrouter/qwen/qwen-2.5-72b-instruct:free
+      api_key: "os.environ/OPENROUTER_API_KEY"
+
+router_settings:
+  routing_strategy: "usage-based-routing"
+  retry_after: 5
+  num_retries: 3
+  fallbacks:
+    - planner: ["planner", "planner", "planner"]
+    - fast: ["fast", "fast", "fast", "fast"]

@@ -1,0 +1,16 @@
+prompt_rules:
+  - scope: global
+    text: "Always cite sources for factual claims."
+  - scope: agent:image
+    text: "Default aspect ratio 16:9 (1280x720) unless the user specifies otherwise."
+  - scope: agent:video
+    text: "Maximum clip duration is 10 seconds. Always confirm before generating."
+
+policy_rules:
+  - id: approve-video
+    when: { tool: "video.generate" }
+    action: require_approval
+
+  - id: step-limit
+    when: { plan_steps_gt: 8 }
+    action: require_approval

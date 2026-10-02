@@ -1,0 +1,11 @@
+servers: []
+# Example MCP server configuration:
+#
+# servers:
+#   - name: filesystem
+#     transport: stdio
+#     command: ["docker", "run", "--rm", "-i", "mcp/filesystem", "/data"]
+#
+#   - name: github
+#     transport: http
+#     url: http://localhost:3001/mcp

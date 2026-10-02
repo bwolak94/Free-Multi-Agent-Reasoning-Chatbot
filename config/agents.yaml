@@ -1,0 +1,16 @@
+agents:
+  - name: research
+    description: Web search, page extraction, source ranking, cited synthesis
+    tools: [web.search, web.fetch]
+
+  - name: image
+    description: Prompt refinement and image generation via cloud APIs
+    tools: [image.generate]
+
+  - name: video
+    description: Script refinement and async video generation via HF Spaces
+    tools: [video.generate]
+
+  - name: tool
+    description: General-purpose tool and MCP tool execution
+    tools: []  # dynamically loaded from ToolRegistry
