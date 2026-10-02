@@ -1,0 +1,39 @@
+# CODEOWNERS
+# Defines required reviewers per path.
+# Last matching rule wins. Order matters.
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default — owner reviews everything not matched below
+*                               @bartoszwolak
+
+# Core orchestration & agent graph — requires AI/LLM architect sign-off
+agents/                         @bartoszwolak
+agents/graph.py                 @bartoszwolak
+agents/state.py                 @bartoszwolak
+
+# LLM gateway & model configuration — sensitive, affects cost and quality
+api/llm.py                      @bartoszwolak
+config/litellm_config.yaml      @bartoszwolak
+
+# Security-sensitive areas — require security review
+.github/workflows/deploy.yml    @bartoszwolak
+config/rules/                   @bartoszwolak
+tools/                          @bartoszwolak
+
+# Infrastructure & deployment
+docker-compose*.yml             @bartoszwolak
+nginx/                          @bartoszwolak
+Makefile                        @bartoszwolak
+
+# Database migrations — require DBA review
+alembic/                        @bartoszwolak
+
+# Frontend
+ui/                             @bartoszwolak
+
+# CI/CD pipelines
+.github/workflows/              @bartoszwolak
+
+# Documentation — no approval required, but owner notified
+docs/                           @bartoszwolak
+*.md                            @bartoszwolak

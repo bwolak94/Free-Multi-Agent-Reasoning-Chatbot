@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/your-org/free-multi-agent-reasoning-chatbot/security/advisories/new
+    about: Report a security vulnerability privately (do not use a public issue)
+  - name: Documentation
+    url: https://github.com/your-org/free-multi-agent-reasoning-chatbot/tree/main/docs
+    about: Architecture, workflows, API reference, and task specs
