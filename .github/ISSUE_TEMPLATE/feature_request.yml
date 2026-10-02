@@ -1,0 +1,64 @@
+name: Feature Request
+description: Propose a new feature or improvement
+labels: ["enhancement", "needs-triage"]
+
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What problem does this solve? What limitation are you hitting?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the feature. Include API changes, new config, or UX flows if relevant.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - New agent type
+        - HITL / approval flow
+        - LLM gateway / model support
+        - MCP / extensibility
+        - Policy engine / rules
+        - Image / video generation
+        - API endpoint
+        - React UI
+        - Observability
+        - Infrastructure / deployment
+        - Developer experience
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority (your view)
+      options:
+        - Critical — blocking my use case
+        - High — important, workaround is painful
+        - Medium — nice to have
+        - Low — minor improvement
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you considered and why you rejected them.
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Links, references, prior art, mockups.

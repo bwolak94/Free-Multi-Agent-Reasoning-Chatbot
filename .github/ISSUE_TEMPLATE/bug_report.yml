@@ -1,0 +1,97 @@
+name: Bug Report
+description: Report a bug or unexpected behaviour
+labels: ["bug", "needs-triage"]
+assignees: ["bartoszwolak"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, please check [existing issues](https://github.com/your-org/free-multi-agent-reasoning-chatbot/issues) and ensure you are on the latest `main`.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear description of the bug.
+      placeholder: "When I send a message with X, the planner returns Y instead of Z..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to reproduce the issue.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - API / FastAPI
+        - LangGraph / Agent Graph
+        - Planner
+        - Supervisor
+        - Research Agent
+        - Image Agent
+        - Video Agent
+        - Tool Agent
+        - Reflector / Synthesizer
+        - HITL (interrupt/resume)
+        - Policy Engine
+        - Tool Registry / MCP
+        - LiteLLM Gateway
+        - Worker / arq
+        - S3 / Artifacts
+        - Observability / Langfuse
+        - React UI
+        - Docker / Infrastructure
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Langfuse trace
+      description: Paste relevant logs or a Langfuse trace URL. Remove any secrets.
+      render: shell
+
+  - type: input
+    id: commit
+    attributes:
+      label: Commit / version
+      placeholder: "git rev-parse --short HEAD"
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      value: |
+        - OS:
+        - Python version:
+        - Docker version:
+        - LLM provider(s) in use:

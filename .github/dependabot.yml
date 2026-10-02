@@ -1,0 +1,73 @@
+version: 2
+
+updates:
+  # Python dependencies (uv / pip ecosystem)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Warsaw"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "bartoszwolak"
+    labels:
+      - "dependencies"
+      - "python"
+    groups:
+      langchain-ecosystem:
+        patterns:
+          - "langchain*"
+          - "langgraph*"
+          - "langfuse*"
+      fastapi-ecosystem:
+        patterns:
+          - "fastapi*"
+          - "pydantic*"
+          - "sse-starlette*"
+          - "uvicorn*"
+      testing:
+        patterns:
+          - "pytest*"
+          - "coverage*"
+    ignore:
+      # Pin LangGraph — breaking changes are frequent
+      - dependency-name: "langgraph"
+        update-types: ["version-update:semver-major"]
+
+  # Node / Next.js (ui/)
+  - package-ecosystem: "npm"
+    directory: "/ui"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Warsaw"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "bartoszwolak"
+    labels:
+      - "dependencies"
+      - "frontend"
+    groups:
+      next-ecosystem:
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+          - "@types/react*"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Warsaw"
+    reviewers:
+      - "bartoszwolak"
+    labels:
+      - "dependencies"
+      - "ci"

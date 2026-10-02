@@ -1,39 +1,25 @@
-# Environment — NEVER commit any of these
+# =============================================================================
+# Claude Code — local AI assistant config (never commit)
+# =============================================================================
+.claude/
+docs/
+
+# =============================================================================
+# Secrets & Environment — NEVER COMMIT
+# =============================================================================
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env*.local
+.env.*
+!.env.example
 *.env
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
 
-# Node / pnpm
-node_modules/
-.turbo/
-dist/
-build/
-out/
-.next/
-*.tsbuildinfo
-coverage/
-
-# Vercel
-.vercel
-
-# Logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# Python (legacy, remove after full migration to TS)
+# =============================================================================
+# Python
+# =============================================================================
 __pycache__/
 *.py[cod]
 *.pyo
@@ -42,37 +28,101 @@ __pycache__/
 *.egg-info/
 *.egg
 .eggs/
+build/
+dist/
 .venv/
 venv/
 env/
 .uv/
 .mypy_cache/
 .pytype/
+.pyre/
 .ruff_cache/
 .pytest_cache/
 .coverage
 coverage.xml
 htmlcov/
+.hypothesis/
 .tox/
-src/db/migrations/versions/__pycache__/
 
-# Secrets — NEVER commit these
-*.pem
-*.key
-*.p12
-*.pfx
-secrets/
-.claude/
-.snapshots/
-docs/
-plan.md
-tasks/
-task/
-rekrut/
-.council/
-# LanceDB prototype experiment data (Stage 0)
+# =============================================================================
+# Node / Next.js
+# =============================================================================
+node_modules/
+.turbo/
+dist/
+build/
+out/
+.next/
+*.tsbuildinfo
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# =============================================================================
+# Docker / local data volumes
+# =============================================================================
+docker-compose.override.yml
+pgdata/
+redis_data/
+minio_data/
+langfuse_data/
+volumes/
+
+# =============================================================================
+# Database (local dev)
+# =============================================================================
+*.db
+*.sqlite
+*.sqlite3
+
+# =============================================================================
+# Artifacts & Media (generated)
+# =============================================================================
+artifacts/
+*.mp4
+*.webm
+
+# =============================================================================
+# ML models
+# =============================================================================
+*.gguf
+*.safetensors
+*.bin
+models/
+
+# =============================================================================
+# IDE & OS
+# =============================================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =============================================================================
+# Logs
+# =============================================================================
+*.log
+logs/
+
+# =============================================================================
+# Misc
+# =============================================================================
+*.bak
+*.tmp
+*.temp
+.cache/
+
+# =============================================================================
+# Legacy / prototype data (kept for reference)
+# =============================================================================
 .proto_db/
 proto/.proto_db_config.json
-
-# Production RAG index
 .rag/
+.snapshots/
+rekrut/
+.council/
