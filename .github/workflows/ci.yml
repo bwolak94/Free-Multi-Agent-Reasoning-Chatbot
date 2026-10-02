@@ -132,7 +132,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build API image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -142,7 +142,7 @@ jobs:
           tags: chatbot-api:ci
 
       - name: Build Worker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile.worker
