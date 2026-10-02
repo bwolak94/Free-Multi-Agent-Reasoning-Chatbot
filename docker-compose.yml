@@ -1,0 +1,133 @@
+services:
+  # ---------------------------------------------------------------------------
+  # API — FastAPI application
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      - ENVIRONMENT=development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app          # hot reload in dev
+      - ./artifacts:/app/artifacts   # local FS artifacts (USE_LOCAL_FS=true)
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+
+  # ---------------------------------------------------------------------------
+  # Worker — arq async job worker
+  # ---------------------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    env_file: .env
+    environment:
+      - ENVIRONMENT=development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - ./artifacts:/app/artifacts
+
+  # ---------------------------------------------------------------------------
+  # Postgres — thread persistence + checkpointer
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: chatbot
+      POSTGRES_PASSWORD: chatbot
+      POSTGRES_DB: chatbot
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatbot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Redis — job queue + pub/sub for progress events
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # SearXNG — self-hosted search engine
+  # ---------------------------------------------------------------------------
+  searxng:
+    image: searxng/searxng:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config/searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+
+  # ---------------------------------------------------------------------------
+  # Langfuse — self-hosted observability (LLM tracing)
+  # ---------------------------------------------------------------------------
+  langfuse-server:
+    image: langfuse/langfuse:2
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://chatbot:chatbot@postgres:5432/langfuse
+      - NEXTAUTH_SECRET=changeme-dev-secret
+      - SALT=changeme-dev-salt
+      - NEXTAUTH_URL=http://localhost:3000
+      - TELEMETRY_ENABLED=false
+      - LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # nginx — reverse proxy (used in prod; optional in dev)
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+    profiles:
+      - proxy    # only starts with: docker compose --profile proxy up
+
+volumes:
+  pgdata:
+  redis_data:

@@ -1,0 +1,29 @@
+services:
+  api:
+    image: ghcr.io/${GITHUB_REPOSITORY}/api:${IMAGE_TAG:-latest}
+    restart: always
+    build: !reset null
+    volumes: !reset []
+
+  worker:
+    image: ghcr.io/${GITHUB_REPOSITORY}/worker:${IMAGE_TAG:-latest}
+    restart: always
+    build: !reset null
+    volumes: !reset []
+
+  postgres:
+    restart: always
+    volumes:
+      - /opt/chatbot/pgdata:/var/lib/postgresql/data
+
+  redis:
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - /opt/chatbot/redis_data:/data
+
+  searxng:
+    restart: always
+
+  langfuse-server:
+    restart: always

@@ -108,7 +108,9 @@ jobs:
         run: uv run alembic upgrade head
 
       - name: Run tests
-        run: uv run pytest tests/ -v --tb=short --cov=. --cov-report=xml --cov-fail-under=70
+        # --cov=api only — other packages are stubs until M2+
+        # threshold raised per milestone as real code is added
+        run: uv run pytest tests/ -v --tb=short --cov=api --cov-report=xml --cov-fail-under=70
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
