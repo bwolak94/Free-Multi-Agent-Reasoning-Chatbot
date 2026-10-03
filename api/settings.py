@@ -16,6 +16,12 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./dev.db"
     use_sqlite: bool = False
 
+    # Research tools
+    searxng_url: str = "http://localhost:8080"
+    jina_reader_url: str = "https://r.jina.ai"
+    research_max_results: int = 5
+    research_fetch_timeout: int = 5
+
     # Redis
     redis_url: str = "redis://localhost:6379/0"
 
