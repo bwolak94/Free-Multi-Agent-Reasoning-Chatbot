@@ -60,7 +60,36 @@ async def _planner_node(state: GraphState) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# Stub nodes — replaced by real implementations in T08-T19
+# Real agent nodes
+# ---------------------------------------------------------------------------
+
+
+async def _research_node(state: GraphState) -> Any:
+    """Run the Research Agent and return Command(goto='supervisor')."""
+    from langgraph.types import Command
+
+    from agents.research.nodes import run_research_agent
+
+    idx = state.get("current_step", 0)
+    steps = list(state.get("plan", []))
+    goal = steps[idx].get("goal", "") if 0 <= idx < len(steps) else ""
+
+    try:
+        _, observation = await run_research_agent(goal)
+    except Exception as exc:
+        observation = f"Research failed: {exc}"
+
+    if 0 <= idx < len(steps):
+        steps[idx] = {**steps[idx], "status": "done"}
+
+    observations = list(state.get("observations") or [])
+    observations.append(observation)
+
+    return Command(goto="supervisor", update={"plan": steps, "observations": observations})
+
+
+# ---------------------------------------------------------------------------
+# Stub nodes — replaced by real implementations in T10-T19
 # ---------------------------------------------------------------------------
 
 
@@ -104,8 +133,11 @@ def build_graph(
     builder.add_node("hitl_tool", hitl_tool_node)
     builder.add_node("supervisor", supervisor_node)
 
-    # Agent stubs (T09-T19 will replace these)
-    for agent in ("research", "image", "video", "tool"):
+    # Research agent (T09)
+    builder.add_node("research", _research_node)
+
+    # Agent stubs (T10-T19 will replace these)
+    for agent in ("image", "video", "tool"):
         builder.add_node(agent, _stub_agent(agent))
 
     # Reflector / synthesizer stubs (T18)
