@@ -1,16 +1,33 @@
+from __future__ import annotations
+
 import asyncio
-from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
 from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
 
 from api.routers.threads import router as threads_router
+from api.routers.tools import router as tools_router
 from api.schemas import DoneEvent, TokenEvent
+
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    from tools import discover_tools
+
+    discover_tools()
+    yield
+
 
 app = FastAPI(
     title="Free Multi-Agent Reasoning Chatbot",
     version="0.1.0",
+    lifespan=_lifespan,
 )
 
 app.add_middleware(
@@ -22,6 +39,7 @@ app.add_middleware(
 )
 
 app.include_router(threads_router)
+app.include_router(tools_router)
 
 
 @app.get("/health")
