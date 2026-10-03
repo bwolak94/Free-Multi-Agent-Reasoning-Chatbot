@@ -58,14 +58,62 @@ async def _planner_node(state: GraphState) -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# Stub nodes — replaced by real implementations in T08-T19
+# ---------------------------------------------------------------------------
+
+
+def _stub_agent(name: str) -> Any:
+    """Return a node function that marks the current step as done."""
+    from langgraph.types import Command
+
+    def _node(state: GraphState) -> Any:
+        idx = state.get("current_step", 0)
+        steps = list(state.get("plan", []))
+        if 0 <= idx < len(steps):
+            steps[idx] = {**steps[idx], "status": "done"}
+        return Command(goto="supervisor", update={"plan": steps})
+
+    _node.__name__ = name
+    return _node
+
+
+def _reflector_stub(_state: GraphState) -> dict[str, Any]:
+    """Stub reflector — just ends the graph for now (replaced in T18)."""
+    return {}
+
+
+def _synthesizer_stub(_state: GraphState) -> dict[str, Any]:
+    """Stub synthesizer — just ends the graph for now (replaced in T18)."""
+    return {}
+
+
 def build_graph(
     checkpointer: BaseCheckpointSaver | None = None,  # type: ignore[type-arg]
 ) -> CompiledStateGraph:  # type: ignore[type-arg]
     """Build and compile the LangGraph state machine."""
+    from agents.supervisor import supervisor_node
+
     builder = StateGraph(GraphState)
+
+    # Core nodes
     builder.add_node("planner", _planner_node)
+    builder.add_node("supervisor", supervisor_node)
+
+    # Agent stubs (T08-T19 will replace these)
+    for agent in ("research", "image", "video", "tool"):
+        builder.add_node(agent, _stub_agent(agent))
+
+    # Reflector / synthesizer stubs (T18)
+    builder.add_node("reflector", _reflector_stub)  # type: ignore[arg-type]
+    builder.add_node("synthesizer", _synthesizer_stub)  # type: ignore[arg-type]
+
+    # Edges
     builder.add_edge(START, "planner")
-    builder.add_edge("planner", END)
+    builder.add_edge("planner", "supervisor")
+    builder.add_edge("reflector", END)
+    builder.add_edge("synthesizer", END)
+
     return builder.compile(checkpointer=checkpointer)
 
 
