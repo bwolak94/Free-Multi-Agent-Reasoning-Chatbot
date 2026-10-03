@@ -37,6 +37,7 @@ class GraphState(TypedDict, total=False):
     iterations: int
     hitl_config: dict[str, Any] | None
     error: str | None
+    pending_tool: dict[str, Any] | None
 
 
 async def _planner_node(state: GraphState) -> dict[str, Any]:
@@ -92,15 +93,18 @@ def build_graph(
     checkpointer: BaseCheckpointSaver | None = None,  # type: ignore[type-arg]
 ) -> CompiledStateGraph:  # type: ignore[type-arg]
     """Build and compile the LangGraph state machine."""
+    from agents.hitl import hitl_plan_node, hitl_tool_node
     from agents.supervisor import supervisor_node
 
     builder = StateGraph(GraphState)
 
     # Core nodes
     builder.add_node("planner", _planner_node)
+    builder.add_node("hitl_plan", hitl_plan_node)
+    builder.add_node("hitl_tool", hitl_tool_node)
     builder.add_node("supervisor", supervisor_node)
 
-    # Agent stubs (T08-T19 will replace these)
+    # Agent stubs (T09-T19 will replace these)
     for agent in ("research", "image", "video", "tool"):
         builder.add_node(agent, _stub_agent(agent))
 
@@ -110,7 +114,8 @@ def build_graph(
 
     # Edges
     builder.add_edge(START, "planner")
-    builder.add_edge("planner", "supervisor")
+    builder.add_edge("planner", "hitl_plan")
+    builder.add_edge("hitl_plan", "supervisor")
     builder.add_edge("reflector", END)
     builder.add_edge("synthesizer", END)
 
