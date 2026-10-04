@@ -93,7 +93,7 @@ async def _research_node(state: GraphState) -> Any:
 # ---------------------------------------------------------------------------
 
 
-def _stub_agent(name: str) -> Any:
+def _stub_agent(name: str, *, goto: str = "supervisor") -> Any:
     """Return a node function that marks the current step as done."""
     from langgraph.types import Command
 
@@ -102,10 +102,22 @@ def _stub_agent(name: str) -> Any:
         steps = list(state.get("plan", []))
         if 0 <= idx < len(steps):
             steps[idx] = {**steps[idx], "status": "done"}
-        return Command(goto="supervisor", update={"plan": steps})
+        return Command(goto=goto, update={"plan": steps})
 
     _node.__name__ = name
     return _node
+
+
+def _tool_executor_stub(state: GraphState) -> Any:
+    """Stub tool executor — T19 will implement full ToolRegistry dispatch."""
+    from langgraph.types import Command
+
+    pending = state.get("pending_tool")
+    observations = list(state.get("observations") or [])
+    if pending:
+        tool_name = pending.get("name", "unknown")
+        observations.append(f"[TOOL STUB] {tool_name}: not yet implemented.")
+    return Command(goto="supervisor", update={"observations": observations, "pending_tool": None})
 
 
 def _reflector_stub(_state: GraphState) -> dict[str, Any]:
@@ -123,6 +135,7 @@ def build_graph(
 ) -> CompiledStateGraph:  # type: ignore[type-arg]
     """Build and compile the LangGraph state machine."""
     from agents.hitl import hitl_plan_node, hitl_tool_node
+    from agents.policy import policy_guard_node
     from agents.supervisor import supervisor_node
 
     builder = StateGraph(GraphState)
@@ -133,12 +146,17 @@ def build_graph(
     builder.add_node("hitl_tool", hitl_tool_node)
     builder.add_node("supervisor", supervisor_node)
 
+    # Policy guard + tool executor (T12 / T19)
+    builder.add_node("policy_guard", policy_guard_node)
+    builder.add_node("tool_executor", _tool_executor_stub)
+
     # Research agent (T09)
     builder.add_node("research", _research_node)
 
-    # Agent stubs (T10-T19 will replace these)
-    for agent in ("image", "video", "tool"):
+    # Agent stubs — image/video go direct to supervisor, tool goes through policy_guard
+    for agent in ("image", "video"):
         builder.add_node(agent, _stub_agent(agent))
+    builder.add_node("tool", _stub_agent("tool", goto="policy_guard"))
 
     # Reflector / synthesizer stubs (T18)
     builder.add_node("reflector", _reflector_stub)  # type: ignore[arg-type]
@@ -150,6 +168,12 @@ def build_graph(
     builder.add_edge("hitl_plan", "supervisor")
     builder.add_edge("reflector", END)
     builder.add_edge("synthesizer", END)
+
+    # hitl_tool → tool_executor (approved/edited) or supervisor (rejected)
+    builder.add_conditional_edges(
+        "hitl_tool",
+        lambda state: "tool_executor" if state.get("pending_tool") else "supervisor",
+    )
 
     return builder.compile(checkpointer=checkpointer)
 

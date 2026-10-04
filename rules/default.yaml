@@ -1,0 +1,20 @@
+# rules/default.yaml
+# Policy and prompt rules for the Free Multi-Agent Reasoning Chatbot.
+# Edit this file and call POST /admin/reload to apply changes without restarting.
+
+prompt_rules:
+  - scope: global
+    text: "Always cite sources for factual claims."
+  - scope: agent:image
+    text: "Default aspect ratio 16:9 unless specified."
+
+policy_rules:
+  - id: approve-video
+    when: { tool: "video.generate" }
+    action: require_approval
+  - id: block-domains
+    when: { tool: "web.fetch", arg: "url", matches: '(facebook|tiktok)\.com' }
+    action: deny
+  - id: step-limit
+    when: { plan_steps_gt: 8 }
+    action: require_approval

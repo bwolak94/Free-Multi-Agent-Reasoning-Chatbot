@@ -20,9 +20,11 @@ from api.schemas import DoneEvent, TokenEvent
 
 @asynccontextmanager
 async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    from agents.policy import get_policy_engine
     from tools import discover_tools
 
     discover_tools()
+    get_policy_engine().load()
     await get_loader().load()
     yield
 
