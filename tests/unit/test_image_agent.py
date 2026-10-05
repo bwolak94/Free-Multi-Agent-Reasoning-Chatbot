@@ -1,11 +1,11 @@
 """Unit tests for the image agent — backends, job, nodes."""
+
 from __future__ import annotations
 
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Backends
@@ -40,7 +40,9 @@ class TestPollinationsBackend:
         from agents.image.backends import PollinationsBackend
 
         mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock(side_effect=httpx.HTTPStatusError("err", request=MagicMock(), response=MagicMock()))
+        mock_resp.raise_for_status = MagicMock(
+            side_effect=httpx.HTTPStatusError("err", request=MagicMock(), response=MagicMock())
+        )
 
         mock_client = AsyncMock()
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -81,7 +83,9 @@ class TestHFInferenceBackend:
         from agents.image.backends import HFInferenceBackend
 
         mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock(side_effect=httpx.HTTPStatusError("err", request=MagicMock(), response=MagicMock()))
+        mock_resp.raise_for_status = MagicMock(
+            side_effect=httpx.HTTPStatusError("err", request=MagicMock(), response=MagicMock())
+        )
 
         mock_client = AsyncMock()
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -113,7 +117,7 @@ class TestImageGenerationJob:
         image_bytes = b"img"
 
         class FakeBackend(ImageBackend):
-            async def generate(self, prompt: str, width: int, height: int) -> bytes:
+            async def generate(self, _prompt: str, _width: int, _height: int) -> bytes:
                 return image_bytes
 
         ctx = self._make_ctx()
@@ -140,11 +144,11 @@ class TestImageGenerationJob:
         image_bytes = b"img-from-fallback"
 
         class FailBackend(ImageBackend):
-            async def generate(self, prompt: str, width: int, height: int) -> bytes:
+            async def generate(self, _prompt: str, _width: int, _height: int) -> bytes:
                 raise RuntimeError("primary failed")
 
         class OkBackend(ImageBackend):
-            async def generate(self, prompt: str, width: int, height: int) -> bytes:
+            async def generate(self, _prompt: str, _width: int, _height: int) -> bytes:
                 return image_bytes
 
         ctx = self._make_ctx()
@@ -166,7 +170,7 @@ class TestImageGenerationJob:
         from agents.image.job import ImageGenerationJob
 
         class FailBackend(ImageBackend):
-            async def generate(self, prompt: str, width: int, height: int) -> bytes:
+            async def generate(self, _prompt: str, _width: int, _height: int) -> bytes:
                 raise RuntimeError("failed")
 
         ctx = self._make_ctx()
@@ -187,12 +191,12 @@ class TestImageGenerationJob:
         from agents.image.job import ImageGenerationJob
 
         class OkBackend(ImageBackend):
-            async def generate(self, prompt: str, width: int, height: int) -> bytes:
+            async def generate(self, _prompt: str, _width: int, _height: int) -> bytes:
                 return b"img"
 
         ctx = self._make_ctx()
         with patch("agents.image.job.settings") as mock_settings:
-            mock_settings.artifacts_local_path = "/tmp"  # noqa: S108
+            mock_settings.artifacts_local_path = "/tmp"
             job = ImageGenerationJob(
                 job_id="my-job",
                 ctx=ctx,
@@ -276,7 +280,9 @@ class TestRunImageAgentNode:
             result = await run_image_agent(self._make_state())
 
         update = result.update
-        assert any("refined" in str(o) or "/artifacts/xyz" in str(o) for o in update["observations"])
+        assert any(
+            "refined" in str(o) or "/artifacts/xyz" in str(o) for o in update["observations"]
+        )
         assert update["artifacts"][0]["artifact_id"] == "xyz"
         assert update["plan"][0]["status"] == "done"
 
@@ -313,10 +319,13 @@ class TestRunImageAgentNode:
         mock_pool.enqueue_job = AsyncMock(return_value=mock_job)
 
         with (
-            patch("agents.image.nodes.refine_image_prompt", side_effect=RuntimeError("llm error")),
+            patch(
+                "agents.image.nodes.refine_image_prompt",
+                side_effect=RuntimeError("llm error"),
+            ),
             patch("agents.image.nodes.get_arq_pool", return_value=mock_pool),
         ):
-            result = await run_image_agent(self._make_state("a beautiful sunset"))
+            await run_image_agent(self._make_state("a beautiful sunset"))
 
         # Job was still enqueued (with raw goal as prompt)
         mock_pool.enqueue_job.assert_called_once()
