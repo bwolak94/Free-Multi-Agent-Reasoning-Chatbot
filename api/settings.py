@@ -30,6 +30,14 @@ class Settings(BaseSettings):
     aws_s3_bucket: str = ""
     aws_region: str = "us-east-1"
     use_local_fs: bool = True
+    artifacts_local_path: str = "artifacts"
+
+    # Image generation
+    pollinations_url: str = "https://image.pollinations.ai"
+    hf_inference_model: str = "black-forest-labs/FLUX.1-schnell"
+    hf_inference_timeout: int = 120
+    image_default_width: int = 1280
+    image_default_height: int = 720
 
     # Observability
     langfuse_host: str = "http://localhost:3000"

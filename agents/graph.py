@@ -153,8 +153,11 @@ def build_graph(
     # Research agent (T09)
     builder.add_node("research", _research_node)
 
-    # Agent stubs — image/video go direct to supervisor, tool goes through policy_guard
-    for agent in ("image", "video"):
+    # Agent stubs — video goes direct to supervisor, tool goes through policy_guard
+    from agents.image.nodes import run_image_agent
+
+    builder.add_node("image", run_image_agent)
+    for agent in ("video",):
         builder.add_node(agent, _stub_agent(agent))
     builder.add_node("tool", _stub_agent("tool", goto="policy_guard"))
 
