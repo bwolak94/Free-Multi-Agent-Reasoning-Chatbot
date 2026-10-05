@@ -13,6 +13,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from api.mcp_loader import get_loader
 from api.routers.admin import router as admin_router
+from api.routers.jobs import router as jobs_router
 from api.routers.threads import router as threads_router
 from api.routers.tools import router as tools_router
 from api.schemas import DoneEvent, TokenEvent
@@ -46,6 +47,7 @@ app.add_middleware(
 app.include_router(threads_router)
 app.include_router(tools_router)
 app.include_router(admin_router)
+app.include_router(jobs_router)
 
 
 @app.get("/health")

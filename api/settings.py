@@ -22,8 +22,9 @@ class Settings(BaseSettings):
     research_max_results: int = 5
     research_fetch_timeout: int = 5
 
-    # Redis
+    # Redis / workers
     redis_url: str = "redis://localhost:6379/0"
+    worker_job_timeout: int = 600  # seconds; arq cancels jobs that exceed this
 
     # Storage
     aws_s3_bucket: str = ""
