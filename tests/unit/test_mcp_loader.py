@@ -202,6 +202,7 @@ async def test_admin_reload_endpoint() -> None:
     from httpx import ASGITransport, AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+    from api.config_manager import ReloadResult
     from api.database import get_session
     from api.main import app
     from api.models import Base
@@ -219,7 +220,8 @@ async def test_admin_reload_endpoint() -> None:
 
     app.dependency_overrides[get_session] = override_session
 
-    with patch("api.mcp_loader.MCPLoader.reload", AsyncMock(return_value=None)):
+    mock_result = ReloadResult(reloaded_rules=3, reloaded_mcp_servers=1)
+    with patch("api.config_manager.ConfigManager.reload", AsyncMock(return_value=mock_result)):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             resp = await c.post("/admin/reload")
 
@@ -228,4 +230,7 @@ async def test_admin_reload_endpoint() -> None:
     settings.use_sqlite = False
 
     assert resp.status_code == 200
-    assert resp.json()["status"] == "reloaded"
+    body = resp.json()
+    assert body["status"] == "ok"
+    assert body["reloaded_rules"] == 3
+    assert body["reloaded_mcp_servers"] == 1
