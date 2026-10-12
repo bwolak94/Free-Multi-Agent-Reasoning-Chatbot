@@ -89,8 +89,14 @@ async def _stream_graph(
     run_id: str,
 ) -> AsyncIterator[dict[str, str]]:
     """Shared SSE streaming logic for both /runs and /resume."""
+    from api.tracing import get_tracer
+
+    tracer = get_tracer()
     await repo.update_status(thread_id, ThreadStatus.running)
     interrupted = False
+    with tracer.start_as_current_span("graph.run") as span:
+        span.set_attribute("thread_id", thread_id)
+        span.set_attribute("run_id", run_id)
     try:
         async for event in graph.astream_events(input_, config=config, version="v2"):
             kind = event.get("event", "")
