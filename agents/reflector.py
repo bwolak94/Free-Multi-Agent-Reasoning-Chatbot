@@ -26,11 +26,8 @@ def reflector_node(state: GraphState) -> Command:  # type: ignore[type-arg]
 
     steps: list[dict[str, Any]] = list(state.get("plan", []))
     iterations: int = state.get("iterations", 0)
-    max_iter: int = (
-        state.get("hitl_config", {}).get("max_iterations", settings.max_iterations)
-        if state.get("hitl_config")
-        else settings.max_iterations
-    )  # type: ignore[union-attr]
+    hitl_cfg: dict[str, Any] = state.get("hitl_config") or {}
+    max_iter: int = int(hitl_cfg.get("max_iterations", settings.max_iterations))
 
     if not steps:
         logger.debug("Reflector: empty plan → synthesizer")

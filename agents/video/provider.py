@@ -4,6 +4,7 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -92,15 +93,15 @@ class HFSpacesProvider(VideoProvider):
         duration_s: int,
     ) -> str:
         """Synchronous gradio_client call — runs in a thread pool."""
-        from gradio_client import Client, handle_file  # type: ignore[import-untyped]
+        from gradio_client import Client, handle_file
 
-        kwargs: dict = {"src": self._space}
+        kwargs: dict[str, str] = {"src": self._space}
         if self._hf_token:
             kwargs["hf_token"] = self._hf_token
 
         client = Client(**kwargs)
 
-        predict_kwargs: dict = {
+        predict_kwargs: dict[str, Any] = {
             "prompt": prompt,
             "num_frames": min(duration_s * 8, 81),  # ~8 fps, cap at 81 frames
         }
