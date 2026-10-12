@@ -143,12 +143,11 @@ def build_graph(
     # Research agent (T09)
     builder.add_node("research", _research_node)
 
-    # Agent stubs — video goes direct to supervisor, tool goes through policy_guard
     from agents.image.nodes import run_image_agent
+    from agents.video.nodes import run_video_agent
 
     builder.add_node("image", run_image_agent)
-    for agent in ("video",):
-        builder.add_node(agent, _stub_agent(agent))
+    builder.add_node("video", run_video_agent)
     builder.add_node("tool", select_tool_node)
 
     # Reflector / synthesizer stubs (T18)
