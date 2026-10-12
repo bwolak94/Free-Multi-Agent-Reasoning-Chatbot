@@ -108,9 +108,7 @@ jobs:
         run: uv run alembic upgrade head
 
       - name: Run tests
-        # --cov=api only — other packages are stubs until M2+
-        # threshold raised per milestone as real code is added
-        run: uv run pytest tests/ -v --tb=short --cov=api --cov-report=xml --cov-fail-under=70
+        run: uv run pytest tests/ -v --tb=short --cov=api --cov=agents --cov-report=xml --cov-fail-under=70
 
       - name: Upload coverage
         uses: codecov/codecov-action@v7
@@ -118,6 +116,40 @@ jobs:
         with:
           files: coverage.xml
           fail_ci_if_error: false
+
+  # ---------------------------------------------------------------------------
+  # Eval — regression eval suite with FakeLLM (no live API calls)
+  # ---------------------------------------------------------------------------
+  eval:
+    name: Eval suite
+    runs-on: ubuntu-latest
+    needs: lint
+
+    env:
+      USE_SQLITE: "true"
+      USE_LOCAL_FS: "true"
+      GROQ_API_KEY: test-key
+      GEMINI_API_KEY: test-key
+      OPENROUTER_API_KEY: test-key
+      HF_TOKEN: test-key
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync --frozen --dev
+
+      - name: Run eval suite
+        run: uv run pytest tests/ -m eval -v --tb=short
 
   # ---------------------------------------------------------------------------
   # Build — verify Docker image builds without errors
