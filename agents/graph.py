@@ -108,16 +108,6 @@ def _stub_agent(name: str, *, goto: str = "supervisor") -> Any:
     return _node
 
 
-def _reflector_stub(_state: GraphState) -> dict[str, Any]:
-    """Stub reflector — just ends the graph for now (replaced in T18)."""
-    return {}
-
-
-def _synthesizer_stub(_state: GraphState) -> dict[str, Any]:
-    """Stub synthesizer — just ends the graph for now (replaced in T18)."""
-    return {}
-
-
 def build_graph(
     checkpointer: BaseCheckpointSaver | None = None,  # type: ignore[type-arg]
 ) -> CompiledStateGraph:  # type: ignore[type-arg]
@@ -150,15 +140,16 @@ def build_graph(
     builder.add_node("video", run_video_agent)
     builder.add_node("tool", select_tool_node)
 
-    # Reflector / synthesizer stubs (T18)
-    builder.add_node("reflector", _reflector_stub)  # type: ignore[arg-type]
-    builder.add_node("synthesizer", _synthesizer_stub)  # type: ignore[arg-type]
+    from agents.reflector import reflector_node
+    from agents.synthesizer import synthesizer_node
+
+    builder.add_node("reflector", reflector_node)
+    builder.add_node("synthesizer", synthesizer_node)
 
     # Edges
     builder.add_edge(START, "planner")
     builder.add_edge("planner", "hitl_plan")
     builder.add_edge("hitl_plan", "supervisor")
-    builder.add_edge("reflector", END)
     builder.add_edge("synthesizer", END)
 
     # hitl_tool → tool_executor (approved/edited) or supervisor (rejected)
