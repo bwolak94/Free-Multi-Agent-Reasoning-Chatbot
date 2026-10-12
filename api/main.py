@@ -23,9 +23,19 @@ from api.schemas import DoneEvent, TokenEvent
 @asynccontextmanager
 async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     from agents.policy import get_policy_engine
+    from api.tracing import (
+        configure_litellm_tracing,
+        configure_structlog,
+        configure_tracing,
+        instrument_tool_registry,
+    )
     from tools import discover_tools
 
+    configure_structlog()
+    configure_tracing()
     discover_tools()
+    instrument_tool_registry()
+    configure_litellm_tracing()
     get_policy_engine().load()
     await get_loader().load()
     yield
@@ -53,8 +63,11 @@ app.include_router(artifacts_router)
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
+async def health() -> dict[str, str | bool]:
+    from api.tracing import check_langfuse_health
+
+    langfuse_ok = await check_langfuse_health()
+    return {"status": "ok", "langfuse": langfuse_ok}
 
 
 @app.get("/threads/{thread_id}/stream-test")
