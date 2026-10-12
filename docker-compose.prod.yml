@@ -27,3 +27,35 @@ services:
 
   langfuse-server:
     restart: always
+
+  # ---------------------------------------------------------------------------
+  # nginx — production: TLS via Let's Encrypt, no profiles gate
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    restart: always
+    profiles: !reset []          # remove the "proxy" profile gate from dev config
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ./nginx/nginx.prod.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - /opt/chatbot/letsencrypt:/etc/letsencrypt:ro
+      - /opt/chatbot/certbot/www:/var/www/certbot:ro
+    depends_on:
+      - api
+
+  # ---------------------------------------------------------------------------
+  # Certbot — issues and renews Let's Encrypt certificates
+  # Run manually: docker compose run --rm certbot certonly ...
+  # Auto-renew: docker compose run --rm certbot renew
+  # ---------------------------------------------------------------------------
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - /opt/chatbot/letsencrypt:/etc/letsencrypt
+      - /opt/chatbot/certbot/www:/var/www/certbot
+    profiles:
+      - certbot    # run with: docker compose --profile certbot run certbot
