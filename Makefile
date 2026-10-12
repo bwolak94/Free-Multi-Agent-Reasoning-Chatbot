@@ -1,4 +1,4 @@
-.PHONY: help dev lint type-check test eval build deploy cert renew logs clean
+.PHONY: help dev ui lint type-check test eval build deploy cert renew logs clean
 
 # Default target
 help:
@@ -22,6 +22,7 @@ help:
 	@echo "  make test          pytest unit + integration (no live API)"
 	@echo "  make test-cov      pytest with coverage report"
 	@echo "  make eval          full eval suite"
+	@echo "  make ui            Start Next.js dev server (port 3001)"
 	@echo ""
 	@echo "Deployment:"
 	@echo "  make build         Build Docker images"
@@ -41,6 +42,9 @@ infra:
 dev: infra
 	uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000 &
 	uv run arq workers.main.WorkerSettings
+
+ui:
+	cd frontend && npm run dev
 
 migrate:
 	uv run alembic upgrade head

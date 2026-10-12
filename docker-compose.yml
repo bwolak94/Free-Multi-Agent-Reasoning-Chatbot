@@ -115,6 +115,22 @@ services:
         condition: service_healthy
 
   # ---------------------------------------------------------------------------
+  # Frontend — Next.js chat UI
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - api
+    profiles:
+      - frontend  # opt-in: docker compose --profile frontend up
+
+  # ---------------------------------------------------------------------------
   # nginx — reverse proxy (used in prod; optional in dev)
   # ---------------------------------------------------------------------------
   nginx:
