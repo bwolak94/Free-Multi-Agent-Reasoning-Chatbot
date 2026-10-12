@@ -1,4 +1,4 @@
-.PHONY: help dev lint type-check test eval build deploy logs clean
+.PHONY: help dev lint type-check test eval build deploy cert renew logs clean
 
 # Default target
 help:
@@ -89,9 +89,27 @@ deploy:
 	git pull origin main
 	docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
 	docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm api uv run alembic upgrade head
-	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-deps --wait api worker
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-deps --wait api worker nginx
 	docker image prune -f
 	@echo "Deploy complete."
+
+# Issue a new Let's Encrypt certificate (run once after first deploy)
+# Usage: DOMAIN=chat.example.com EMAIL=you@example.com make cert
+cert:
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+	  --profile certbot run --rm certbot certonly \
+	  --webroot --webroot-path=/var/www/certbot \
+	  --email $(EMAIL) --agree-tos --no-eff-email \
+	  -d $(DOMAIN)
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml restart nginx
+	@echo "Certificate issued for $(DOMAIN)."
+
+# Renew certificates (add to cron: 0 3 * * * cd /opt/chatbot && make renew)
+renew:
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+	  --profile certbot run --rm certbot renew --quiet
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml exec nginx nginx -s reload
+	@echo "Certificates renewed."
 
 # =============================================================================
 # Maintenance

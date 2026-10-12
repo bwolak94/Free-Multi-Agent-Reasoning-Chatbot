@@ -108,18 +108,6 @@ def _stub_agent(name: str, *, goto: str = "supervisor") -> Any:
     return _node
 
 
-def _tool_executor_stub(state: GraphState) -> Any:
-    """Stub tool executor — T19 will implement full ToolRegistry dispatch."""
-    from langgraph.types import Command
-
-    pending = state.get("pending_tool")
-    observations = list(state.get("observations") or [])
-    if pending:
-        tool_name = pending.get("name", "unknown")
-        observations.append(f"[TOOL STUB] {tool_name}: not yet implemented.")
-    return Command(goto="supervisor", update={"observations": observations, "pending_tool": None})
-
-
 def _reflector_stub(_state: GraphState) -> dict[str, Any]:
     """Stub reflector — just ends the graph for now (replaced in T18)."""
     return {}
@@ -146,9 +134,11 @@ def build_graph(
     builder.add_node("hitl_tool", hitl_tool_node)
     builder.add_node("supervisor", supervisor_node)
 
+    from agents.tool.nodes import execute_tool_node, select_tool_node
+
     # Policy guard + tool executor (T12 / T19)
     builder.add_node("policy_guard", policy_guard_node)
-    builder.add_node("tool_executor", _tool_executor_stub)
+    builder.add_node("tool_executor", execute_tool_node)
 
     # Research agent (T09)
     builder.add_node("research", _research_node)
@@ -159,7 +149,7 @@ def build_graph(
     builder.add_node("image", run_image_agent)
     for agent in ("video",):
         builder.add_node(agent, _stub_agent(agent))
-    builder.add_node("tool", _stub_agent("tool", goto="policy_guard"))
+    builder.add_node("tool", select_tool_node)
 
     # Reflector / synthesizer stubs (T18)
     builder.add_node("reflector", _reflector_stub)  # type: ignore[arg-type]

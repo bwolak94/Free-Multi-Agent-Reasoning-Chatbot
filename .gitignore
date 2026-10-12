@@ -10,6 +10,7 @@ docs/
 .env
 .env.*
 !.env.example
+!.env.prod.example
 *.env
 secrets/
 *.pem

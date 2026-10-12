@@ -26,9 +26,12 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     worker_job_timeout: int = 600  # seconds; arq cancels jobs that exceed this
 
-    # Storage
-    aws_s3_bucket: str = ""
-    aws_region: str = "us-east-1"
+    # Storage — Cloudflare R2 (S3-compatible)
+    r2_account_id: str = ""
+    r2_access_key_id: str = ""
+    r2_secret_access_key: str = ""
+    r2_bucket: str = "chatbot-artifacts"
+    r2_endpoint: str = ""  # https://<account_id>.r2.cloudflarestorage.com
     use_local_fs: bool = True
     artifacts_local_path: str = "artifacts"
 
