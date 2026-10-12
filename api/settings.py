@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     image_default_width: int = 1280
     image_default_height: int = 720
 
+    # Video generation
+    hf_video_space: str = "Wan-AI/Wan2.1-T2V-14B"
+    hf_video_api_name: str = "/generate"
+
     # Observability
     langfuse_host: str = "http://localhost:3000"
     langfuse_public_key: str = ""

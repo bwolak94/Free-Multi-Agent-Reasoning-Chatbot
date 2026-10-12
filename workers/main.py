@@ -6,6 +6,7 @@ import redis.asyncio as aioredis
 from arq.connections import RedisSettings
 
 from agents.image.job import run_image_job
+from agents.video.job import run_video_job
 from api.settings import settings
 from workers.jobs import run_dummy_job
 
@@ -19,7 +20,7 @@ async def shutdown(ctx: dict[str, Any]) -> None:
 
 
 class WorkerSettings:
-    functions = [run_dummy_job, run_image_job]
+    functions = [run_dummy_job, run_image_job, run_video_job]
     redis_settings = RedisSettings.from_dsn(settings.redis_url)
     on_startup = startup
     on_shutdown = shutdown
