@@ -49,10 +49,10 @@ async def get_tool_preferences(
 
     return [
         ToolPrefResponse(
-            name=p.tool_name,  # type: ignore[attr-defined]
-            description=tool_map[p.tool_name].description if p.tool_name in tool_map else "",  # type: ignore[attr-defined]
-            risk=tool_map[p.tool_name].risk if p.tool_name in tool_map else "unknown",  # type: ignore[attr-defined]
-            enabled=p.enabled,  # type: ignore[attr-defined]
+            name=p.tool_name,
+            description=tool_map[p.tool_name].description if p.tool_name in tool_map else "",
+            risk=tool_map[p.tool_name].risk if p.tool_name in tool_map else "unknown",
+            enabled=p.enabled,
         )
         for p in prefs
     ]
