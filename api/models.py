@@ -30,6 +30,7 @@ class ThreadStatus(enum.StrEnum):
     running = "running"
     waiting_hitl = "waiting_hitl"
     error = "error"
+    deleted = "deleted"
 
 
 class Thread(Base):

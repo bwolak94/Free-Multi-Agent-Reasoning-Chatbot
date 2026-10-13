@@ -18,6 +18,7 @@ from api.routers.auth import router as auth_router
 from api.routers.jobs import router as jobs_router
 from api.routers.threads import router as threads_router
 from api.routers.tools import router as tools_router
+from api.routers.users import router as users_router
 from api.schemas import DoneEvent, TokenEvent
 
 
@@ -62,6 +63,7 @@ app.include_router(tools_router)
 app.include_router(admin_router)
 app.include_router(jobs_router)
 app.include_router(artifacts_router)
+app.include_router(users_router)
 
 
 @app.get("/health")

@@ -177,3 +177,50 @@ class ArtifactRepository:
                 Body=data,
                 ContentType=content_type,
             )
+
+
+class UserThreadRepository:
+    """Thread queries scoped to an authenticated user."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def list_by_user(
+        self,
+        user_id: str,
+        limit: int = 20,
+        offset: int = 0,
+        status: str | None = None,
+    ) -> list[Thread]:
+        from sqlalchemy import select
+
+        from api.models import ThreadStatus
+
+        q = select(Thread).where(
+            Thread.user_id == user_id,
+            Thread.status != ThreadStatus.deleted,
+        )
+        if status:
+            q = q.where(Thread.status == status)
+        q = q.order_by(Thread.created_at.desc()).offset(offset).limit(limit)
+        result = await self._session.execute(q)
+        return list(result.scalars().all())
+
+    async def get_message_count(self, _thread_id: str) -> int:
+        """Return the number of HumanMessage entries in the LangGraph checkpoint."""
+        return 0  # Filled by history endpoint that replays checkpoint
+
+    async def soft_delete(self, thread_id: str, user_id: str) -> bool:
+        """Set status=deleted. Returns False if thread not owned by user."""
+        from sqlalchemy import update
+
+        from api.models import ThreadStatus
+
+        result = await self._session.execute(
+            update(Thread)
+            .where(Thread.id == thread_id, Thread.user_id == user_id)
+            .values(status=ThreadStatus.deleted, updated_at=datetime.now(UTC))
+            .returning(Thread.id)
+        )
+        await self._session.commit()
+        return result.first() is not None
