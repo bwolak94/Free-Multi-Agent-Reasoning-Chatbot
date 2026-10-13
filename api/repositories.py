@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import aioboto3
 from sqlalchemy import select, update
 
-from api.models import Artifact, Thread, ThreadStatus, User
+from api.models import Artifact, Thread, ThreadStatus, User, UserToolPref
 from api.settings import settings
 
 if TYPE_CHECKING:
@@ -344,11 +344,9 @@ class ToolPrefRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def get_all(self, user_id: str, known_tools: list[str]) -> list[object]:
+    async def get_all(self, user_id: str, known_tools: list[str]) -> list[UserToolPref]:
         """Return prefs for all known tools, defaulting to enabled=True."""
         from sqlalchemy import select
-
-        from api.models import UserToolPref
 
         result = await self._session.execute(
             select(UserToolPref).where(UserToolPref.user_id == user_id)

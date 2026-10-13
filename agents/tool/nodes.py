@@ -56,7 +56,7 @@ async def select_tool_node(state: GraphState) -> Any:
     hitl_config: dict[str, object] = state.get("hitl_config") or {}
     enabled_tools = hitl_config.get("enabled_tools")
     if enabled_tools is not None:
-        enabled_set = set(enabled_tools)  # type: ignore[arg-type]
+        enabled_set = set(enabled_tools)  # type: ignore[call-overload]
         tool_descriptors = [t for t in tool_descriptors if t.name in enabled_set]
 
     if not tool_descriptors:
