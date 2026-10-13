@@ -4,36 +4,35 @@
 # Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 # Default — owner reviews everything not matched below
-*                               @bartoszwolak
+*                               @bwolak94
 
 # Core orchestration & agent graph — requires AI/LLM architect sign-off
-agents/                         @bartoszwolak
-agents/graph.py                 @bartoszwolak
-agents/state.py                 @bartoszwolak
+agents/                         @bwolak94
+agents/graph.py                 @bwolak94
 
 # LLM gateway & model configuration — sensitive, affects cost and quality
-api/llm.py                      @bartoszwolak
-config/litellm_config.yaml      @bartoszwolak
+api/llm.py                      @bwolak94
+config/litellm_config.yaml      @bwolak94
 
 # Security-sensitive areas — require security review
-.github/workflows/deploy.yml    @bartoszwolak
-config/rules/                   @bartoszwolak
-tools/                          @bartoszwolak
+.github/workflows/deploy.yml    @bwolak94
+config/rules/                   @bwolak94
+tools/                          @bwolak94
 
 # Infrastructure & deployment
-docker-compose*.yml             @bartoszwolak
-nginx/                          @bartoszwolak
-Makefile                        @bartoszwolak
+docker-compose*.yml             @bwolak94
+nginx/                          @bwolak94
+Makefile                        @bwolak94
 
 # Database migrations — require DBA review
-alembic/                        @bartoszwolak
+alembic/                        @bwolak94
 
 # Frontend
-ui/                             @bartoszwolak
+frontend/                           @bwolak94
 
 # CI/CD pipelines
-.github/workflows/              @bartoszwolak
+.github/workflows/              @bwolak94
 
 # Documentation — no approval required, but owner notified
-docs/                           @bartoszwolak
-*.md                            @bartoszwolak
+docs/                           @bwolak94
+*.md                            @bwolak94

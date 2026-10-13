@@ -17,7 +17,7 @@ We maintain only the latest version on `main`. Please ensure you are running the
 
 Report vulnerabilities privately via one of the following:
 
-- **GitHub Private Vulnerability Reporting:** Use the [Security tab](https://github.com/your-org/free-multi-agent-reasoning-chatbot/security/advisories/new) → "Report a vulnerability".
+- **GitHub Private Vulnerability Reporting:** Use the [Security tab](https://github.com/bwolak94/Free-Multi-Agent-Reasoning-Chatbot/security/advisories/new) → "Report a vulnerability".
 - **Email:** security@your-domain.com (PGP key available on request).
 
 ### What to include
