@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""
 
+    # Auth — JWT signing key (generate with: openssl rand -hex 32)
+    secret_key: str = "dev-secret-change-in-production"
+    access_token_expire_hours: int = 8
+
     # Application
     environment: str = "development"
     log_level: str = "INFO"

@@ -8,11 +8,38 @@ from typing import TYPE_CHECKING
 import aioboto3
 from sqlalchemy import select, update
 
-from api.models import Artifact, Thread, ThreadStatus
+from api.models import Artifact, Thread, ThreadStatus, User
 from api.settings import settings
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
+
+
+class UserRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def create(self, user_id: str, username: str, hashed_password: str) -> User:
+        now = datetime.now(UTC)
+        user = User(
+            id=user_id,
+            username=username,
+            hashed_password=hashed_password,
+            is_active=True,
+            created_at=now,
+        )
+        self._session.add(user)
+        await self._session.commit()
+        await self._session.refresh(user)
+        return user
+
+    async def get_by_id(self, user_id: str) -> User | None:
+        result = await self._session.execute(select(User).where(User.id == user_id))
+        return result.scalar_one_or_none()
+
+    async def get_by_username(self, username: str) -> User | None:
+        result = await self._session.execute(select(User).where(User.username == username))
+        return result.scalar_one_or_none()
 
 
 class ThreadRepository:
