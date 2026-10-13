@@ -7,8 +7,8 @@ Thank you for contributing. This document covers the development workflow, branc
 ## Development Setup
 
 ```bash
-git clone https://github.com/your-org/free-multi-agent-reasoning-chatbot.git
-cd free-multi-agent-reasoning-chatbot
+git clone https://github.com/bwolak94/Free-Multi-Agent-Reasoning-Chatbot.git
+cd Free-Multi-Agent-Reasoning-Chatbot
 
 # Install Python deps
 uv sync
@@ -17,7 +17,7 @@ uv sync
 cp .env.example .env
 
 # Start infrastructure
-docker compose up -d postgres redis searxng langfuse
+docker compose up -d postgres redis searxng langfuse-server
 
 # Run migrations
 uv run alembic upgrade head

@@ -11,7 +11,7 @@ updates:
       timezone: "Europe/Warsaw"
     open-pull-requests-limit: 5
     reviewers:
-      - "bartoszwolak"
+      - "bwolak94"
     labels:
       - "dependencies"
       - "python"
@@ -36,9 +36,9 @@ updates:
       - dependency-name: "langgraph"
         update-types: ["version-update:semver-major"]
 
-  # Node / Next.js (ui/)
+  # Node / Next.js (frontend/)
   - package-ecosystem: "npm"
-    directory: "/ui"
+    directory: "/frontend"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -46,7 +46,7 @@ updates:
       timezone: "Europe/Warsaw"
     open-pull-requests-limit: 5
     reviewers:
-      - "bartoszwolak"
+      - "bwolak94"
     labels:
       - "dependencies"
       - "frontend"
@@ -67,7 +67,7 @@ updates:
       time: "06:00"
       timezone: "Europe/Warsaw"
     reviewers:
-      - "bartoszwolak"
+      - "bwolak94"
     labels:
       - "dependencies"
       - "ci"
