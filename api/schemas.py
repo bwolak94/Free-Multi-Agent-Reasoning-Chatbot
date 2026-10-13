@@ -47,3 +47,34 @@ class ErrorEvent(BaseModel):
     type: Literal["error"] = "error"
     code: str
     message: str
+
+
+# ---------------------------------------------------------------------------
+# Prompt library schemas
+# ---------------------------------------------------------------------------
+
+
+class PromptCreate(BaseModel):
+    title: str
+    content: str
+    description: str | None = None
+    tags: list[str] = []
+
+
+class PromptUpdate(BaseModel):
+    title: str | None = None
+    content: str | None = None
+    description: str | None = None
+    tags: list[str] | None = None
+
+
+class PromptResponse(BaseModel):
+    id: str
+    user_id: str
+    title: str
+    content: str
+    description: str | None
+    tags: list[str]
+    use_count: int
+    created_at: str
+    updated_at: str
