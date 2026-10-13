@@ -37,7 +37,7 @@ help:
 # =============================================================================
 
 infra:
-	docker compose up -d postgres redis searxng langfuse
+	docker compose up -d postgres redis searxng langfuse-server
 
 dev: infra
 	uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000 &
