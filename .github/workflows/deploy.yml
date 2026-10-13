@@ -3,6 +3,11 @@ name: Deploy
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "LICENSE"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/PULL_REQUEST_TEMPLATE.md"
   workflow_dispatch:
     inputs:
       reason:
@@ -14,19 +19,43 @@ concurrency:
   group: deploy-production
   cancel-in-progress: false   # Never cancel a running deploy
 
+permissions:
+  contents: read
+
 jobs:
-  deploy:
-    name: Deploy to EC2 (production)
-    runs-on: ubuntu-latest
-    environment: production     # Requires manual approval gate in GitHub Environments
-    timeout-minutes: 15
+  # ---------------------------------------------------------------------------
+  # Build — API + worker images pushed to GHCR (always runs on main)
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build & push images (GHCR)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_repo: ${{ steps.vars.outputs.image_repo }}
+      can_deploy: ${{ steps.vars.outputs.can_deploy }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      # -----------------------------------------------------------------
-      # Build and push Docker images to ECR (or GHCR)
-      # -----------------------------------------------------------------
+      # Docker image names must be lowercase; the repo name is not.
+      - name: Resolve image name and deploy target
+        id: vars
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          repo="${GITHUB_REPOSITORY,,}"
+          echo "image_repo=${repo}" >> "$GITHUB_OUTPUT"
+          if [ -n "$DEPLOY_HOST" ] && [ -n "$DEPLOY_SSH_KEY" ]; then
+            echo "can_deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "can_deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Deploy skipped::DEPLOY_HOST / DEPLOY_SSH_KEY secrets are not set — images are built and pushed, server deploy is skipped."
+          fi
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -37,104 +66,108 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ghcr.io/${{ github.repository }}/api
-            ghcr.io/${{ github.repository }}/worker
-          tags: |
-            type=sha,prefix=,suffix=,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
-
       - name: Build and push API image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          tags: ghcr.io/${{ github.repository }}/api:${{ github.sha }},ghcr.io/${{ github.repository }}/api:latest
-          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+          tags: |
+            ghcr.io/${{ steps.vars.outputs.image_repo }}/api:${{ github.sha }}
+            ghcr.io/${{ steps.vars.outputs.image_repo }}/api:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
 
       - name: Build and push Worker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile.worker
           push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          tags: ghcr.io/${{ github.repository }}/worker:${{ github.sha }},ghcr.io/${{ github.repository }}/worker:latest
-          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=worker
+          cache-to: type=gha,mode=max,scope=worker
+          tags: |
+            ghcr.io/${{ steps.vars.outputs.image_repo }}/worker:${{ github.sha }}
+            ghcr.io/${{ steps.vars.outputs.image_repo }}/worker:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
 
-      # -----------------------------------------------------------------
-      # Deploy to EC2 via SSH
-      # -----------------------------------------------------------------
-      - name: Deploy to EC2
+  # ---------------------------------------------------------------------------
+  # Deploy — SSH to the server (only when deploy secrets are configured)
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy to server (production)
+    needs: build
+    if: needs.build.outputs.can_deploy == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+      issues: write
+    environment:
+      name: production
+      url: ${{ vars.DOMAIN && format('https://{0}', vars.DOMAIN) || '' }}
+
+    steps:
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         env:
           IMAGE_TAG: ${{ github.sha }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REPOSITORY: ${{ needs.build.outputs.image_repo }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/chatbot' }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          envs: IMAGE_TAG,GITHUB_REPOSITORY
-          timeout: 600s
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER || 'root' }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: IMAGE_TAG,GITHUB_REPOSITORY,DEPLOY_PATH,GHCR_USER,GHCR_TOKEN
+          command_timeout: 10m
           script: |
             set -euo pipefail
+            echo "==> Deploying ${IMAGE_TAG} (${GITHUB_REPOSITORY})"
+            cd "$DEPLOY_PATH"
 
-            echo "==> Deploying commit $IMAGE_TAG"
-            cd /opt/chatbot
-
-            # Pull latest compose files
             git fetch origin main
             git reset --hard origin/main
 
-            # Log in to GHCR on EC2
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
-            # Pull new images
-            IMAGE_TAG=$IMAGE_TAG docker compose -f docker-compose.yml -f docker-compose.prod.yml pull api worker
+            export IMAGE_TAG GITHUB_REPOSITORY
+            COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
 
-            # Run migrations before switching traffic
-            IMAGE_TAG=$IMAGE_TAG docker compose -f docker-compose.yml -f docker-compose.prod.yml \
-              run --rm api uv run alembic upgrade head
+            $COMPOSE pull api worker
+            $COMPOSE run --rm api alembic upgrade head
+            $COMPOSE up -d --no-deps --wait api worker
 
-            # Rolling restart: zero-downtime for stateless services
-            IMAGE_TAG=$IMAGE_TAG docker compose -f docker-compose.yml -f docker-compose.prod.yml \
-              up -d --no-deps --wait api worker
-
-            # Cleanup dangling images
+            docker logout ghcr.io
             docker image prune -f
-
             echo "==> Deploy complete"
 
-      # -----------------------------------------------------------------
-      # Smoke test — verify API is healthy after deploy
-      # -----------------------------------------------------------------
       - name: Smoke test
+        if: vars.DOMAIN != ''
         run: |
-          sleep 10
-          RESPONSE=$(curl -sf --max-time 10 https://${{ secrets.EC2_HOST }}/health || echo "FAILED")
-          echo "Health check response: $RESPONSE"
-          echo "$RESPONSE" | grep -q '"status":"ok"' || (echo "Health check failed!" && exit 1)
+          for i in $(seq 1 10); do
+            if curl -sf --max-time 10 "https://${{ vars.DOMAIN }}/health" | grep -q '"status":"ok"'; then
+              echo "Health check OK"; exit 0
+            fi
+            echo "Attempt $i failed, retrying in 6s..."; sleep 6
+          done
+          echo "Health check failed"; exit 1
 
-      # -----------------------------------------------------------------
-      # Notify on failure
-      # -----------------------------------------------------------------
-      - name: Notify on failure
+      - name: Open issue on failure
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
-            github.rest.issues.create({
+            await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: `Deploy failed: ${context.sha.substring(0, 7)}`,
               body: `Deploy workflow failed.\n\nCommit: ${context.sha}\nRun: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              labels: ['deploy-failure']
             })
