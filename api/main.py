@@ -16,6 +16,7 @@ from api.routers.admin import router as admin_router
 from api.routers.artifacts import router as artifacts_router
 from api.routers.auth import router as auth_router
 from api.routers.jobs import router as jobs_router
+from api.routers.prompts import router as prompts_router
 from api.routers.threads import router as threads_router
 from api.routers.tools import router as tools_router
 from api.routers.users import router as users_router
@@ -64,6 +65,7 @@ app.include_router(admin_router)
 app.include_router(jobs_router)
 app.include_router(artifacts_router)
 app.include_router(users_router)
+app.include_router(prompts_router)
 
 
 @app.get("/health")
