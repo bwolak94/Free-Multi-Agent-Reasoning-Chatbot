@@ -4,6 +4,8 @@ import enum
 from datetime import UTC, datetime
 
 from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Integer, String, Text
+
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -78,6 +80,10 @@ class Artifact(Base):
 class Prompt(Base):
     __tablename__ = "prompts"
 
+class UserToolPref(Base):
+    __tablename__ = "user_tool_prefs"
+    __table_args__ = (UniqueConstraint("user_id", "tool_name", name="uq_user_tool"),)
+
     id: Mapped[str] = mapped_column(String, primary_key=True)
     user_id: Mapped[str] = mapped_column(
         String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
@@ -92,6 +98,9 @@ class Prompt(Base):
         default=lambda: datetime.now(UTC),
         nullable=False,
     )
+
+    tool_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),

@@ -337,3 +337,69 @@ class PromptRepository:
             update(Prompt).where(Prompt.id == prompt_id).values(use_count=Prompt.use_count + 1)
         )
         await self._session.commit()
+
+class ToolPrefRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def get_all(self, user_id: str, known_tools: list[str]) -> list[object]:
+        """Return prefs for all known tools, defaulting to enabled=True."""
+        from sqlalchemy import select
+
+        from api.models import UserToolPref
+
+        result = await self._session.execute(
+            select(UserToolPref).where(UserToolPref.user_id == user_id)
+        )
+        stored = {p.tool_name: p for p in result.scalars().all()}
+
+        prefs = []
+        for tool_name in known_tools:
+            if tool_name in stored:
+                prefs.append(stored[tool_name])
+            else:
+                # Virtual default — not persisted until user changes it
+                fake = UserToolPref()
+                fake.id = ""
+                fake.user_id = user_id
+                fake.tool_name = tool_name
+                fake.enabled = True
+                fake.updated_at = datetime.now(UTC)
+                prefs.append(fake)
+        return prefs
+
+    async def set(self, user_id: str, tool_name: str, enabled: bool) -> object:
+        import uuid
+
+        from api.models import UserToolPref
+
+        now = datetime.now(UTC)
+        # upsert via merge pattern (works for both SQLite and Postgres)
+        result = await self._session.execute(
+            __import__("sqlalchemy", fromlist=["select"])
+            .select(UserToolPref)
+            .where(
+                UserToolPref.user_id == user_id,
+                UserToolPref.tool_name == tool_name,
+            )
+        )
+        pref = result.scalar_one_or_none()
+        if pref is None:
+            pref = UserToolPref(
+                id=str(uuid.uuid4()),
+                user_id=user_id,
+                tool_name=tool_name,
+                enabled=enabled,
+                updated_at=now,
+            )
+            self._session.add(pref)
+        else:
+            pref.enabled = enabled
+            pref.updated_at = now
+        await self._session.commit()
+        await self._session.refresh(pref)
+        return pref
+
+    async def set_bulk(self, user_id: str, prefs: dict[str, bool]) -> None:
+        for tool_name, enabled in prefs.items():
+            await self.set(user_id, tool_name, enabled)
