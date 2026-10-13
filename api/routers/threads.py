@@ -16,10 +16,11 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents.graph import build_graph, make_run_id
+from api.auth import get_current_user
 from api.checkpointer import get_checkpointer
 from api.database import get_session
 from api.models import ThreadStatus
-from api.repositories import ThreadRepository
+from api.repositories import ThreadRepository, UserThreadRepository
 from api.schemas import DoneEvent, ErrorEvent, InterruptEvent, StepEvent, TokenEvent
 
 router = APIRouter(prefix="/threads", tags=["threads"])
@@ -203,3 +204,15 @@ async def resume_thread(
                 yield item
 
     return EventSourceResponse(event_stream())
+
+
+@router.delete("/{thread_id}", status_code=204)
+async def delete_thread(
+    thread_id: str,
+    current_user: Any = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    repo = UserThreadRepository(session)
+    deleted = await repo.soft_delete(thread_id, current_user.id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Thread not found or not owned by user")

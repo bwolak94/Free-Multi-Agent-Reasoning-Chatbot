@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import aioboto3
 from sqlalchemy import select, update
 
-from api.models import Artifact, Thread, ThreadStatus, User
+from api.models import Artifact, Thread, ThreadStatus, User, UserToolPref
 from api.settings import settings
 
 if TYPE_CHECKING:
@@ -177,3 +177,229 @@ class ArtifactRepository:
                 Body=data,
                 ContentType=content_type,
             )
+
+
+class UserThreadRepository:
+    """Thread queries scoped to an authenticated user."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def list_by_user(
+        self,
+        user_id: str,
+        limit: int = 20,
+        offset: int = 0,
+        status: str | None = None,
+    ) -> list[Thread]:
+        from sqlalchemy import select
+
+        from api.models import ThreadStatus
+
+        q = select(Thread).where(
+            Thread.user_id == user_id,
+            Thread.status != ThreadStatus.deleted,
+        )
+        if status:
+            q = q.where(Thread.status == status)
+        q = q.order_by(Thread.created_at.desc()).offset(offset).limit(limit)
+        result = await self._session.execute(q)
+        return list(result.scalars().all())
+
+    async def get_message_count(self, _thread_id: str) -> int:
+        """Return the number of HumanMessage entries in the LangGraph checkpoint."""
+        return 0  # Filled by history endpoint that replays checkpoint
+
+    async def soft_delete(self, thread_id: str, user_id: str) -> bool:
+        """Set status=deleted. Returns False if thread not owned by user."""
+        from sqlalchemy import update
+
+        from api.models import ThreadStatus
+
+        result = await self._session.execute(
+            update(Thread)
+            .where(Thread.id == thread_id, Thread.user_id == user_id)
+            .values(status=ThreadStatus.deleted, updated_at=datetime.now(UTC))
+            .returning(Thread.id)
+        )
+        await self._session.commit()
+        return result.first() is not None
+
+
+class PromptRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def create(self, user_id: str, data: object) -> object:
+        import uuid
+
+        from api.models import Prompt
+        from api.schemas import PromptCreate
+
+        assert isinstance(data, PromptCreate)
+        now = datetime.now(UTC)
+        prompt = Prompt(
+            id=str(uuid.uuid4()),
+            user_id=user_id,
+            title=data.title,
+            content=data.content,
+            description=data.description,
+            tags=data.tags,
+            use_count=0,
+            created_at=now,
+            updated_at=now,
+        )
+        self._session.add(prompt)
+        await self._session.commit()
+        await self._session.refresh(prompt)
+        return prompt
+
+    async def get(self, prompt_id: str, user_id: str) -> object | None:
+        from sqlalchemy import select
+
+        from api.models import Prompt
+
+        result = await self._session.execute(
+            select(Prompt).where(Prompt.id == prompt_id, Prompt.user_id == user_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def list(
+        self,
+        user_id: str,
+        search: str | None = None,
+        tags: list[str] | None = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[object]:
+        from sqlalchemy import select
+
+        from api.models import Prompt
+
+        q = select(Prompt).where(Prompt.user_id == user_id)
+        if search:
+            from sqlalchemy import or_
+
+            q = q.where(
+                or_(
+                    Prompt.title.ilike(f"%{search}%"),
+                    Prompt.content.ilike(f"%{search}%"),
+                )
+            )
+        if tags:
+            for tag in tags:
+                q = q.where(Prompt.tags.contains([tag]))
+        q = q.order_by(Prompt.created_at.desc()).offset(offset).limit(limit)
+        result = await self._session.execute(q)
+        return list(result.scalars().all())
+
+    async def update(self, prompt_id: str, user_id: str, data: object) -> object | None:
+        from sqlalchemy import update
+
+        from api.models import Prompt
+        from api.schemas import PromptUpdate
+
+        assert isinstance(data, PromptUpdate)
+        values: dict[str, object] = {"updated_at": datetime.now(UTC)}
+        if data.title is not None:
+            values["title"] = data.title
+        if data.content is not None:
+            values["content"] = data.content
+        if data.description is not None:
+            values["description"] = data.description
+        if data.tags is not None:
+            values["tags"] = data.tags
+
+        await self._session.execute(
+            update(Prompt).where(Prompt.id == prompt_id, Prompt.user_id == user_id).values(**values)
+        )
+        await self._session.commit()
+        return await self.get(prompt_id, user_id)
+
+    async def delete(self, prompt_id: str, user_id: str) -> bool:
+        from sqlalchemy import delete
+
+        from api.models import Prompt
+
+        result = await self._session.execute(
+            delete(Prompt)
+            .where(Prompt.id == prompt_id, Prompt.user_id == user_id)
+            .returning(Prompt.id)
+        )
+        await self._session.commit()
+        return result.first() is not None
+
+    async def increment_use_count(self, prompt_id: str) -> None:
+        from sqlalchemy import update
+
+        from api.models import Prompt
+
+        await self._session.execute(
+            update(Prompt).where(Prompt.id == prompt_id).values(use_count=Prompt.use_count + 1)
+        )
+        await self._session.commit()
+
+
+class ToolPrefRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def get_all(self, user_id: str, known_tools: list[str]) -> list[UserToolPref]:
+        """Return prefs for all known tools, defaulting to enabled=True."""
+        from sqlalchemy import select
+
+        result = await self._session.execute(
+            select(UserToolPref).where(UserToolPref.user_id == user_id)
+        )
+        stored = {p.tool_name: p for p in result.scalars().all()}
+
+        prefs = []
+        for tool_name in known_tools:
+            if tool_name in stored:
+                prefs.append(stored[tool_name])
+            else:
+                # Virtual default — not persisted until user changes it
+                fake = UserToolPref()
+                fake.id = ""
+                fake.user_id = user_id
+                fake.tool_name = tool_name
+                fake.enabled = True
+                fake.updated_at = datetime.now(UTC)
+                prefs.append(fake)
+        return prefs
+
+    async def set(self, user_id: str, tool_name: str, enabled: bool) -> object:
+        import uuid
+
+        from api.models import UserToolPref
+
+        now = datetime.now(UTC)
+        # upsert via merge pattern (works for both SQLite and Postgres)
+        result = await self._session.execute(
+            __import__("sqlalchemy", fromlist=["select"])
+            .select(UserToolPref)
+            .where(
+                UserToolPref.user_id == user_id,
+                UserToolPref.tool_name == tool_name,
+            )
+        )
+        pref = result.scalar_one_or_none()
+        if pref is None:
+            pref = UserToolPref(
+                id=str(uuid.uuid4()),
+                user_id=user_id,
+                tool_name=tool_name,
+                enabled=enabled,
+                updated_at=now,
+            )
+            self._session.add(pref)
+        else:
+            pref.enabled = enabled
+            pref.updated_at = now
+        await self._session.commit()
+        await self._session.refresh(pref)
+        return pref
+
+    async def set_bulk(self, user_id: str, prefs: dict[str, bool]) -> None:
+        for tool_name, enabled in prefs.items():
+            await self.set(user_id, tool_name, enabled)

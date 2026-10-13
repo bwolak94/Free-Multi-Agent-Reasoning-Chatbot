@@ -52,6 +52,13 @@ async def select_tool_node(state: GraphState) -> Any:
     registry = get_registry()
     tool_descriptors = registry.list_all()
 
+    # Filter by user's enabled_tools preference if set in hitl_config
+    hitl_config: dict[str, object] = state.get("hitl_config") or {}
+    enabled_tools = hitl_config.get("enabled_tools")
+    if enabled_tools is not None:
+        enabled_set = set(enabled_tools)  # type: ignore[call-overload]
+        tool_descriptors = [t for t in tool_descriptors if t.name in enabled_set]
+
     if not tool_descriptors:
         observations.append(f"[TOOL ERROR] No tools registered — cannot execute: {goal}")
         if 0 <= idx < len(steps):

@@ -48,7 +48,7 @@ class TokenPayload(BaseModel):
 def create_access_token(user_id: str, username: str) -> str:
     expire = datetime.now(UTC) + timedelta(hours=settings.access_token_expire_hours)
     data: dict[str, Any] = {"sub": user_id, "username": username, "exp": expire}
-    return jwt.encode(data, settings.secret_key, algorithm=_ALGORITHM)
+    return str(jwt.encode(data, settings.secret_key, algorithm=_ALGORITHM))
 
 
 def decode_token(token: str) -> TokenPayload:
