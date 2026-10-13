@@ -177,3 +177,117 @@ class ArtifactRepository:
                 Body=data,
                 ContentType=content_type,
             )
+
+
+class PromptRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def create(self, user_id: str, data: object) -> object:
+        import uuid
+
+        from api.models import Prompt
+        from api.schemas import PromptCreate
+
+        assert isinstance(data, PromptCreate)
+        now = datetime.now(UTC)
+        prompt = Prompt(
+            id=str(uuid.uuid4()),
+            user_id=user_id,
+            title=data.title,
+            content=data.content,
+            description=data.description,
+            tags=data.tags,
+            use_count=0,
+            created_at=now,
+            updated_at=now,
+        )
+        self._session.add(prompt)
+        await self._session.commit()
+        await self._session.refresh(prompt)
+        return prompt
+
+    async def get(self, prompt_id: str, user_id: str) -> object | None:
+        from sqlalchemy import select
+
+        from api.models import Prompt
+
+        result = await self._session.execute(
+            select(Prompt).where(Prompt.id == prompt_id, Prompt.user_id == user_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def list(
+        self,
+        user_id: str,
+        search: str | None = None,
+        tags: list[str] | None = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[object]:
+        from sqlalchemy import select
+
+        from api.models import Prompt
+
+        q = select(Prompt).where(Prompt.user_id == user_id)
+        if search:
+            from sqlalchemy import or_
+
+            q = q.where(
+                or_(
+                    Prompt.title.ilike(f"%{search}%"),
+                    Prompt.content.ilike(f"%{search}%"),
+                )
+            )
+        if tags:
+            for tag in tags:
+                q = q.where(Prompt.tags.contains([tag]))
+        q = q.order_by(Prompt.created_at.desc()).offset(offset).limit(limit)
+        result = await self._session.execute(q)
+        return list(result.scalars().all())
+
+    async def update(self, prompt_id: str, user_id: str, data: object) -> object | None:
+        from sqlalchemy import update
+
+        from api.models import Prompt
+        from api.schemas import PromptUpdate
+
+        assert isinstance(data, PromptUpdate)
+        values: dict[str, object] = {"updated_at": datetime.now(UTC)}
+        if data.title is not None:
+            values["title"] = data.title
+        if data.content is not None:
+            values["content"] = data.content
+        if data.description is not None:
+            values["description"] = data.description
+        if data.tags is not None:
+            values["tags"] = data.tags
+
+        await self._session.execute(
+            update(Prompt).where(Prompt.id == prompt_id, Prompt.user_id == user_id).values(**values)
+        )
+        await self._session.commit()
+        return await self.get(prompt_id, user_id)
+
+    async def delete(self, prompt_id: str, user_id: str) -> bool:
+        from sqlalchemy import delete
+
+        from api.models import Prompt
+
+        result = await self._session.execute(
+            delete(Prompt)
+            .where(Prompt.id == prompt_id, Prompt.user_id == user_id)
+            .returning(Prompt.id)
+        )
+        await self._session.commit()
+        return result.first() is not None
+
+    async def increment_use_count(self, prompt_id: str) -> None:
+        from sqlalchemy import update
+
+        from api.models import Prompt
+
+        await self._session.execute(
+            update(Prompt).where(Prompt.id == prompt_id).values(use_count=Prompt.use_count + 1)
+        )
+        await self._session.commit()
