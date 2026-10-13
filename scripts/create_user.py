@@ -34,7 +34,7 @@ async def main(username: str, password: str) -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:  # noqa: PLR2004
+    if len(sys.argv) != 3:
         print(f"Usage: {sys.argv[0]} <username> <password>")
         sys.exit(1)
 
