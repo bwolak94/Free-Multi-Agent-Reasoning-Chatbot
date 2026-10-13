@@ -3,12 +3,26 @@ from __future__ import annotations
 import enum
 from datetime import UTC, datetime
 
-from sqlalchemy import JSON, DateTime, Enum, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
     pass
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    username: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(Text, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        nullable=False,
+    )
 
 
 class ThreadStatus(enum.StrEnum):
@@ -28,6 +42,10 @@ class Thread(Base):
         nullable=False,
     )
     hitl_config: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    user_id: Mapped[str | None] = mapped_column(
+        String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    title: Mapped[str | None] = mapped_column(String(120), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),

@@ -14,6 +14,7 @@ from sse_starlette.sse import EventSourceResponse
 from api.mcp_loader import get_loader
 from api.routers.admin import router as admin_router
 from api.routers.artifacts import router as artifacts_router
+from api.routers.auth import router as auth_router
 from api.routers.jobs import router as jobs_router
 from api.routers.threads import router as threads_router
 from api.routers.tools import router as tools_router
@@ -55,6 +56,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 app.include_router(threads_router)
 app.include_router(tools_router)
 app.include_router(admin_router)

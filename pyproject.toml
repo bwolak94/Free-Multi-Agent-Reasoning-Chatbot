@@ -39,6 +39,9 @@ dependencies = [
     # Image / video generation
     "huggingface-hub>=0.26.0",
     "gradio-client>=1.4.0",
+    # Auth
+    "python-jose[cryptography]>=3.3.0",
+    "bcrypt>=4.0.0",
     # Observability
     "langfuse>=2.50.0",
     "opentelemetry-sdk>=1.28.0",
