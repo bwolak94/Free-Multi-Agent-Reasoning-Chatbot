@@ -6,6 +6,7 @@ Usage:
 
 The script reads DATABASE_URL from the environment (or .env file).
 """
+
 from __future__ import annotations
 
 import asyncio

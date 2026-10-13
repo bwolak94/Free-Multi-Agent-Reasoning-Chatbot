@@ -225,6 +225,7 @@ class UserThreadRepository:
         await self._session.commit()
         return result.first() is not None
 
+
 class PromptRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -337,6 +338,7 @@ class PromptRepository:
             update(Prompt).where(Prompt.id == prompt_id).values(use_count=Prompt.use_count + 1)
         )
         await self._session.commit()
+
 
 class ToolPrefRepository:
     def __init__(self, session: AsyncSession) -> None:
